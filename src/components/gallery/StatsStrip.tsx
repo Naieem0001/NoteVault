@@ -1,12 +1,23 @@
-import { motion } from 'framer-motion';
+import { motion, useSpring, useTransform } from 'framer-motion';
 import { Files, BookOpen, Sparkles, Download } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { type Submission } from '../../lib/supabase';
 
 interface StatsStripProps {
   submissions: Submission[];
   filteredCount: number;
   isLive?: boolean;
+}
+
+function AnimatedNumber({ value }: { value: number }) {
+  const spring = useSpring(0, { bounce: 0, duration: 1500 });
+  const display = useTransform(spring, (current) => Math.round(current).toLocaleString());
+
+  useEffect(() => {
+    spring.set(value);
+  }, [spring, value]);
+
+  return <motion.span>{display}</motion.span>;
 }
 
 export function StatsStrip({ submissions, filteredCount, isLive = false }: StatsStripProps) {
@@ -20,37 +31,42 @@ export function StatsStrip({ submissions, filteredCount, isLive = false }: Stats
   }, [submissions]);
 
   const items = [
-    { icon: Files, label: 'Files', value: filteredCount, suffix: submissions.length !== filteredCount ? `/ ${submissions.length}` : '' },
+    { icon: Files, label: 'Files', value: filteredCount, suffix: submissions.length !== filteredCount ? ` / ${submissions.length}` : '' },
     { icon: BookOpen, label: 'Subjects', value: stats.subjects },
     { icon: Sparkles, label: 'New Today', value: stats.newToday, accent: true },
     { icon: Download, label: 'Downloads', value: stats.totalDownloads },
   ];
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-2 flex-wrap">
       {/* Live indicator */}
       {isLive && (
-        <div className="flex items-center gap-2 glass rounded-full px-3 py-1.5 border border-white/[0.08] mr-2">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex items-center gap-2 glass rounded-full px-3 py-1.5 border border-white/[0.08] mr-2 shadow-glow-sm"
+        >
           <span className="live-dot" />
-          <span className="text-xs text-slate-400 font-medium">Live</span>
-        </div>
+          <span className="text-xs text-slate-300 font-bold uppercase tracking-wider">Live</span>
+        </motion.div>
       )}
 
       {items.map((item, i) => (
-        <div key={item.label}>
+        <div key={item.label} className="flex items-center">
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className="flex items-center gap-2"
+            initial={{ opacity: 0, y: -8, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: i * 0.1 + 0.2, type: 'spring' }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
+            style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-subtle)' }}
           >
-            <item.icon className={`w-3.5 h-3.5 ${item.accent ? 'text-brand-400' : 'text-slate-500'}`} />
-            <span className={`text-sm font-semibold ${item.accent && item.value > 0 ? 'text-brand-400' : 'text-slate-200'}`}>
-              {item.value.toLocaleString()}{item.suffix ? ` ${item.suffix}` : ''}
+            <item.icon className={`w-3.5 h-3.5`} style={{ color: item.accent ? '#a78bfa' : 'var(--text-muted)' }} />
+            <span className="text-sm font-bold" style={{ color: item.accent && item.value > 0 ? '#a78bfa' : 'var(--text-primary)' }}>
+              <AnimatedNumber value={item.value} />
+              {item.suffix && <span style={{ color: 'var(--text-muted)' }} className="font-medium">{item.suffix}</span>}
             </span>
-            <span className="text-xs text-slate-500">{item.label}</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{item.label}</span>
           </motion.div>
-          {i < items.length - 1 && <span className="mx-2 text-slate-700 text-sm">·</span>}
         </div>
       ))}
     </div>

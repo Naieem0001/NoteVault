@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, ArrowUpDown } from 'lucide-react';
-import { useRef, useEffect } from 'react';
+import { Search, X, ArrowUpDown, Filter } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
 import { type FilterState, type SortKey } from '../../hooks/useFilters';
 
 interface FilterBarProps {
@@ -26,30 +26,37 @@ function FilterPill({
   active,
   onClick,
   count,
+  layoutIdPrefix
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
   count?: number;
+  layoutIdPrefix: string;
 }) {
   return (
-    <motion.button
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
+    <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 whitespace-nowrap ${
-        active
-          ? 'bg-brand-500/20 text-brand-300 border-brand-500/40 shadow-glow-sm'
-          : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:bg-white/[0.07] hover:text-slate-300'
-      }`}
+      className="relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap overflow-hidden"
+      style={{ color: active ? '#fff' : 'var(--text-muted)' }}
     >
-      {label}
+      {active && (
+        <motion.div
+          layoutId={`active-pill-${layoutIdPrefix}`}
+          className="absolute inset-0 rounded-full"
+          style={{ background: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', boxShadow: '0 0 16px rgba(124,58,237,0.4)' }}
+          initial={false}
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        />
+      )}
+      <span className="relative z-10">{label}</span>
       {count !== undefined && count > 0 && (
-        <span className={`text-[0.65rem] px-1.5 py-0.5 rounded-full ${active ? 'bg-brand-500/30 text-brand-200' : 'bg-white/10'}`}>
+        <span className="relative z-10 text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+          style={{ background: active ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.1)', color: active ? '#fff' : 'var(--text-secondary)' }}>
           {count}
         </span>
       )}
-    </motion.button>
+    </button>
   );
 }
 
@@ -63,11 +70,11 @@ export function FilterBar({
   clearFilters,
 }: FilterBarProps) {
   const searchRef = useRef<HTMLInputElement>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  // Keyboard shortcut Ctrl+K / Cmd+K
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') {
         e.preventDefault();
         searchRef.current?.focus();
       }
@@ -81,100 +88,143 @@ export function FilterBar({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4 w-full">
       {/* Search + Sort row */}
-      <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+      <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400 pointer-events-none" />
           <input
             ref={searchRef}
             type="text"
             value={filters.search}
             onChange={(e) => updateFilter('search', e.target.value)}
-            placeholder="Search files, subjects, uploaders… (Ctrl+K)"
-            className="input-glass w-full pl-10 pr-10 py-2.5 rounded-xl text-sm"
+            placeholder="Search files... (Press /)"
+            aria-label="Filter files"
+            className="input-glass w-full pr-11 py-3 text-base shadow-sm"
+            style={{ paddingLeft: '48px', background: 'var(--bg-2)' }}
           />
           {filters.search && (
             <button
               onClick={() => updateFilter('search', '')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-full"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Sort */}
-        <div className="relative">
-          <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-          <select
-            value={filters.sort}
-            onChange={(e) => updateFilter('sort', e.target.value as SortKey)}
-            className="input-glass pl-9 pr-4 py-2.5 rounded-xl text-sm appearance-none cursor-pointer"
+        {/* Sort and Toggle */}
+        <div className="flex gap-2 flex-shrink-0">
+          <div className="relative flex-1 sm:flex-initial">
+            <ArrowUpDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-400 pointer-events-none" />
+            <select
+              value={filters.sort}
+              onChange={(e) => updateFilter('sort', e.target.value as SortKey)}
+              aria-label="Sort files"
+              className="input-glass pr-8 py-3 text-sm appearance-none cursor-pointer w-full font-medium"
+              style={{ paddingLeft: '44px', background: 'var(--bg-2)' }}
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-[#09090b] text-zinc-200">
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() => setMobileFiltersOpen((prev) => !prev)}
+            className="md:hidden input-glass px-4 py-3 flex items-center justify-center text-sm font-medium transition-colors"
+            style={{ background: mobileFiltersOpen ? 'var(--brand)' : 'var(--bg-2)', color: mobileFiltersOpen ? '#fff' : 'var(--text-primary)' }}
           >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-surface-2 text-slate-200">
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            <Filter className="w-4 h-4 mr-2" />
+            Filters
+            {activeFilterCount > 0 && !mobileFiltersOpen && (
+              <span className="ml-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Filter pills row */}
-      <div className="flex items-center gap-2 scroll-x-hidden pb-1">
+      <div className={`${mobileFiltersOpen ? 'flex' : 'hidden'} md:flex flex-wrap items-center gap-3 pb-2`}>
         {/* Mode toggles */}
-        <FilterPill
-          label="⚡ Exam Mode"
-          active={filters.examMode}
-          onClick={() => updateFilter('examMode', !filters.examMode)}
-        />
-        <FilterPill
-          label="✓ Verified"
-          active={filters.verifiedOnly}
-          onClick={() => updateFilter('verifiedOnly', !filters.verifiedOnly)}
-        />
-
-        <div className="h-4 w-px bg-white/10 flex-shrink-0" />
-
-        {/* Subject pills */}
-        {subjects.map((s) => (
+        <div className="flex gap-1 p-1 rounded-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           <FilterPill
-            key={s}
-            label={s}
-            active={filters.subject === s}
-            onClick={() => updateFilter('subject', filters.subject === s ? '' : s)}
+            label="⚡ Exam Mode"
+            active={filters.examMode}
+            onClick={() => updateFilter('examMode', !filters.examMode)}
+            layoutIdPrefix="mode1"
           />
-        ))}
+          <FilterPill
+            label="✓ Verified"
+            active={filters.verifiedOnly}
+            onClick={() => updateFilter('verifiedOnly', !filters.verifiedOnly)}
+            layoutIdPrefix="mode2"
+          />
+        </div>
 
-        {subjects.length > 0 && semesters.length > 0 && (
-          <div className="h-4 w-px bg-white/10 flex-shrink-0" />
+        {subjects.length > 0 && (
+          <div className="flex gap-1 p-1 rounded-full scroll-x-hidden max-w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <FilterPill
+              label="All Subjects"
+              active={!filters.subject}
+              onClick={() => updateFilter('subject', '')}
+              layoutIdPrefix="subject"
+            />
+            {subjects.map((s) => (
+              <FilterPill
+                key={s}
+                label={s}
+                active={filters.subject === s}
+                onClick={() => updateFilter('subject', s)}
+                layoutIdPrefix="subject"
+              />
+            ))}
+          </div>
         )}
 
-        {/* Semester pills */}
-        {semesters.map((sem) => (
-          <FilterPill
-            key={sem}
-            label={sem}
-            active={filters.semester === sem}
-            onClick={() => updateFilter('semester', filters.semester === sem ? '' : sem)}
-          />
-        ))}
-
-        {semesters.length > 0 && fileTypes.length > 0 && (
-          <div className="h-4 w-px bg-white/10 flex-shrink-0" />
+        {semesters.length > 0 && (
+          <div className="flex gap-1 p-1 rounded-full scroll-x-hidden max-w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <FilterPill
+              label="All Semesters"
+              active={!filters.semester}
+              onClick={() => updateFilter('semester', '')}
+              layoutIdPrefix="sem"
+            />
+            {semesters.map((sem) => (
+              <FilterPill
+                key={sem}
+                label={sem}
+                active={filters.semester === sem}
+                onClick={() => updateFilter('semester', sem)}
+                layoutIdPrefix="sem"
+              />
+            ))}
+          </div>
         )}
 
-        {/* File type pills */}
-        {fileTypes.map((ft) => (
-          <FilterPill
-            key={ft}
-            label={fileTypeLabels[ft] ?? ft.toUpperCase()}
-            active={filters.fileType === ft}
-            onClick={() => updateFilter('fileType', filters.fileType === ft ? '' : ft)}
-          />
-        ))}
+        {fileTypes.length > 0 && (
+          <div className="flex gap-1 p-1 rounded-full scroll-x-hidden max-w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <FilterPill
+              label="All Types"
+              active={!filters.fileType}
+              onClick={() => updateFilter('fileType', '')}
+              layoutIdPrefix="type"
+            />
+            {fileTypes.map((ft) => (
+              <FilterPill
+                key={ft}
+                label={fileTypeLabels[ft] ?? ft.toUpperCase()}
+                active={filters.fileType === ft}
+                onClick={() => updateFilter('fileType', ft)}
+                layoutIdPrefix="type"
+              />
+            ))}
+          </div>
+        )}
 
         {/* Clear all */}
         <AnimatePresence>
@@ -184,10 +234,10 @@ export function FilterBar({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={clearFilters}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-red-400 border border-red-400/20 bg-red-400/05 hover:bg-red-400/10 transition-all ml-1"
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors ml-auto"
             >
               <X className="w-3.5 h-3.5" />
-              Clear ({activeFilterCount})
+              Clear Filters
             </motion.button>
           )}
         </AnimatePresence>

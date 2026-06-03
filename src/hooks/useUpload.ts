@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { supabase, type SubmissionInsert } from '../lib/supabase';
+import { supabase, type SubmissionInsert, getCurrentUserId } from '../lib/supabase';
 import { validateFile, getFileType } from '../lib/validators';
 
 export type UploadStatus = 'idle' | 'validating' | 'uploading' | 'inserting' | 'done' | 'error';
@@ -48,37 +48,69 @@ export function useUpload() {
         const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileType}`;
         const storagePath = `uploads/${uniqueName}`;
 
-        // Upload to storage with progress simulation
+        // Upload to storage (supports optional signed-upload flow)
         setState({ status: 'uploading', progress: 10, error: null });
 
-        const { error: storageError } = await supabase.storage
-          .from('submissions')
-          .upload(storagePath, file, {
-            cacheControl: '3600',
-            upsert: false,
+        const useSigned = (import.meta.env.VITE_USE_SIGNED_UPLOAD as string) === 'true';
+        let publicUrlStr = '';
+
+        if (useSigned) {
+          // Expect a backend endpoint at `/api/signed-upload` that returns { uploadUrl, publicUrl }
+          const resp = await fetch('/api/signed-upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: storagePath, contentType: file.type }),
           });
+          if (!resp.ok) {
+            const body = await resp.text();
+            throw new Error(`Failed to get signed upload URL: ${body}`);
+          }
+          const json = await resp.json();
+          if (!json.uploadUrl) throw new Error('Missing uploadUrl from signed-upload endpoint');
 
-        if (storageError) throw storageError;
-        setState((s) => ({ ...s, progress: 75 }));
+          // Upload the file to the signed URL
+          const uploadResp = await fetch(json.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+          if (!uploadResp.ok) throw new Error('Signed upload failed');
+          publicUrlStr = json.publicUrl;
+        } else {
+          const { error: storageError } = await supabase.storage
+            .from('submissions')
+            .upload(storagePath, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('submissions')
-          .getPublicUrl(storagePath);
+          if (storageError) throw storageError;
+          setState((s) => ({ ...s, progress: 75 }));
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('submissions')
+            .getPublicUrl(storagePath);
+
+          publicUrlStr = urlData.publicUrl;
+        }
 
         setState({ status: 'inserting', progress: 85, error: null });
 
         // Insert metadata
+        const uploaderId = await getCurrentUserId();
+
         const insert: SubmissionInsert = {
           file_name: file.name,
           display_name: meta.displayName,
           subject: meta.subject,
           uploader_name: meta.uploaderName,
+          uploader_id: uploaderId ?? undefined,
           semester: meta.semester,
           file_type: fileType,
           file_size: file.size,
           storage_path: storagePath,
-          public_url: urlData.publicUrl,
+          public_url: publicUrlStr,
           description: meta.description,
           tags: meta.tags,
         };
