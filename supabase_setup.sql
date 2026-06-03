@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS public.submissions (
 -- 2. Enable Row Level Security
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 
--- 3. RLS Policies
+-- 3. Grant Privileges
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.submissions TO anon, authenticated, service_role;
+
+-- 4. RLS Policies
 
 -- Allow anyone to READ all submissions
 CREATE POLICY "Public read access"
