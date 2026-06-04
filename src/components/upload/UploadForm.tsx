@@ -1,21 +1,11 @@
 import { useState } from 'react';
-import { motion, AnimatePresence, type Easing } from 'framer-motion';
-import { Upload, Loader2, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, X, CheckCircle, Tag, FileText } from 'lucide-react';
 import { useUpload } from '../../hooks/useUpload';
 import { DropZone } from './DropZone';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
-
-const EASE_OUT: Easing = 'easeOut';
-
-const FIELD_VARIANTS = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.05, duration: 0.3, ease: EASE_OUT },
-  }),
-};
+import { formatFileSize } from '../../lib/validators';
 
 export function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -29,7 +19,6 @@ export function UploadForm() {
     description: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSuccess, setIsSuccess] = useState(false);
   const { state, upload, reset } = useUpload();
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -63,20 +52,11 @@ export function UploadForm() {
     const success = await upload(file!, { ...form, tags });
 
     if (success) {
-      setIsSuccess(true);
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#a78bfa', '#06b6d4', '#ec4899', '#ffffff'],
-        disableForReducedMotion: true,
-      });
-      toast.success('File uploaded successfully!');
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      toast.success('File published successfully!');
       setTimeout(() => {
-        setIsSuccess(false);
         setFile(null);
         setTags([]);
-        setTagInput('');
         setForm({ displayName: '', subject: '', uploaderName: '', semester: '', description: '' });
         reset();
       }, 2500);
@@ -86,182 +66,179 @@ export function UploadForm() {
   };
 
   const isLoading = ['validating', 'uploading', 'inserting'].includes(state.status);
-
-  const fields = [
-    { key: 'displayName', label: 'File Title', placeholder: 'Data Structures Notes', required: true },
-    { key: 'subject', label: 'Subject', placeholder: 'Data Structures and Algorithms', required: true },
-    { key: 'uploaderName', label: 'Your Name', placeholder: 'Rahul Sharma', required: true },
-    { key: 'semester', label: 'Semester', placeholder: '3rd Semester', required: true },
-  ] as const;
-
-  const labelStyle = {
-    color: 'var(--text-muted)',
-    fontSize: '11px',
-    fontWeight: 700,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.07em',
-  };
+  const isSuccess = state.status === 'success';
 
   return (
-    <motion.form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      {/* Drop zone */}
-      <motion.div custom={0} variants={FIELD_VARIANTS} initial="hidden" animate="visible">
-        <label className="block mb-2.5" style={labelStyle}>
-          File <span style={{ color: '#f87171' }}>*</span>
-        </label>
-        <DropZone onFileAccepted={setFile} acceptedFile={file} onRemove={() => setFile(null)} />
-        {errors.file && (
-          <p className="text-xs mt-2 font-semibold" style={{ color: '#f87171' }}>{errors.file}</p>
-        )}
-      </motion.div>
+    <form id="upload-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      {/* Left Column - Media */}
+      <div className="lg:col-span-5 flex flex-col gap-6">
+        
+        {/* Product Media Card */}
+        <div className="bg-[#111111] rounded-2xl border border-[#222222] shadow-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#222222]">
+            <h2 className="text-base font-bold text-white">File Media</h2>
+          </div>
+          <div className="p-6">
+            <DropZone onFileAccepted={setFile} />
+            {errors.file && <p className="text-xs mt-2 font-bold text-red-500">{errors.file}</p>}
+          </div>
+        </div>
 
-      {/* Text fields */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {fields.map((f, i) => (
-          <motion.div key={f.key} custom={i + 1} variants={FIELD_VARIANTS} initial="hidden" animate="visible">
-            <label htmlFor={f.key} className="block mb-2" style={labelStyle}>
-              {f.label} <span style={{ color: '#f87171' }}>*</span>
-            </label>
-            <input
-              id={f.key}
-              type="text"
-              value={form[f.key]}
-              onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
-              placeholder={f.placeholder}
-              required={f.required}
-              className="input-glass w-full px-4 py-3 text-base"
-            />
-            {errors[f.key] && (
-              <p className="text-[10px] mt-1.5 font-semibold" style={{ color: '#f87171' }}>{errors[f.key]}</p>
-            )}
-          </motion.div>
-        ))}
+        {/* Uploaded Files Card */}
+        <div className="bg-[#111111] rounded-2xl border border-[#222222] shadow-xl overflow-hidden min-h-[140px]">
+          <div className="px-6 py-4 border-b border-[#222222]">
+            <h2 className="text-base font-bold text-white">Selected File</h2>
+          </div>
+          <div className="p-6">
+            <AnimatePresence mode="popLayout">
+              {file ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-4 p-4 rounded-xl border border-[#333333] bg-[#1a1a1a]"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-[#7c3aed]/10 flex items-center justify-center text-[#a78bfa]">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-white truncate mb-1">{file.name}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-1.5 bg-[#333333] rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-[#7c3aed] rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: isLoading ? `${state.progress}%` : '100%' }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-500">{formatFileSize(file.size)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isSuccess ? (
+                      <CheckCircle className="w-5 h-5 text-emerald-500" />
+                    ) : isLoading ? (
+                      <Loader2 className="w-5 h-5 text-[#a78bfa] animate-spin" />
+                    ) : (
+                      <button 
+                        type="button" 
+                        onClick={() => setFile(null)} 
+                        className="p-1.5 rounded-md hover:bg-[#333333] text-gray-500 hover:text-red-400 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="text-center py-6 text-gray-600 text-sm font-medium">
+                  No file selected yet
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
       </div>
 
-      {/* Description */}
-      <motion.div custom={5} variants={FIELD_VARIANTS} initial="hidden" animate="visible">
-        <label className="block mb-2" style={labelStyle}>
-          <span>Description</span>
-          <span className="ml-2" style={{ color: 'var(--text-muted)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>— Optional</span>
-        </label>
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-          placeholder="Brief description of the content..."
-          rows={3}
-          className="input-glass w-full px-4 py-3 text-base resize-none"
-        />
-      </motion.div>
-
-      {/* Tags */}
-      <motion.div custom={6} variants={FIELD_VARIANTS} initial="hidden" animate="visible">
-        <label className="block mb-2" style={labelStyle}>
-          <span>Tags</span>
-          <span className="ml-2" style={{ color: 'var(--text-muted)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>— Optional</span>
-        </label>
-        <div
-          className="w-full rounded-[10px] px-4 py-2 flex flex-wrap gap-2 min-h-[48px] items-center transition-all"
-          style={{ background: 'var(--input-bg)', border: '1px solid var(--border-default)' }}
-        >
-          {tags.map((tag) => (
-            <motion.span
-              key={tag}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold"
-              style={{ background: 'rgba(124,58,237,0.18)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
-            >
-              #{tag}
-              <button type="button" onClick={() => removeTag(tag)} className="ml-0.5 opacity-70 hover:opacity-100">
-                <X className="w-3 h-3" />
-              </button>
-            </motion.span>
-          ))}
-          <input
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleAddTag}
-            placeholder={tags.length === 0 ? 'Type tag and press Enter…' : ''}
-            className="flex-1 bg-transparent outline-none text-base min-w-[150px]"
-            style={{ color: 'var(--text-primary)' }}
-          />
+      {/* Right Column - Form */}
+      <div className="lg:col-span-7 bg-[#111111] rounded-2xl border border-[#222222] shadow-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#222222]">
+          <h2 className="text-base font-bold text-white">File Information</h2>
         </div>
-      </motion.div>
+        
+        <div className="p-6 flex flex-col gap-5">
+          {/* File Name */}
+          <div>
+            <label className="block mb-1.5 text-xs font-bold text-gray-400">File Name</label>
+            <input
+              type="text"
+              value={form.displayName}
+              onChange={(e) => setForm((prev) => ({ ...prev, displayName: e.target.value }))}
+              placeholder="e.g. Data Structures Notes"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#0a0a0a] border border-[#333333] text-white text-sm focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] outline-none transition-all"
+            />
+            {errors.displayName && <p className="text-[10px] mt-1 text-red-500 font-bold">{errors.displayName}</p>}
+          </div>
 
-      {/* Progress bar */}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="rounded-xl p-4" style={{ background: 'var(--glass-bg)', border: '1px solid rgba(124,58,237,0.25)' }}>
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#a78bfa' }}>
-                  {state.status === 'validating' && 'Validating…'}
-                  {state.status === 'uploading' && 'Uploading…'}
-                  {state.status === 'inserting' && 'Finalizing…'}
-                </span>
-                <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{state.progress}%</span>
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ background: 'linear-gradient(90deg,#8b5cf6,#06b6d4)' }}
-                  initial={{ width: '0%' }}
-                  animate={{ width: `${state.progress}%` }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
-                />
-              </div>
+          {/* Subject & Semester */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-1.5 text-xs font-bold text-gray-400">Category (Subject)</label>
+              <input
+                type="text"
+                value={form.subject}
+                onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
+                placeholder="Subject"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#0a0a0a] border border-[#333333] text-white text-sm focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] outline-none transition-all"
+              />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div>
+              <label className="block mb-1.5 text-xs font-bold text-gray-400">Subcategory (Semester)</label>
+              <input
+                type="text"
+                value={form.semester}
+                onChange={(e) => setForm((prev) => ({ ...prev, semester: e.target.value }))}
+                placeholder="Semester"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#0a0a0a] border border-[#333333] text-white text-sm focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] outline-none transition-all"
+              />
+            </div>
+          </div>
 
-      {/* Submit */}
-      <motion.button
-        custom={7}
-        variants={FIELD_VARIANTS}
-        initial="hidden"
-        animate="visible"
-        whileHover={!isLoading && !isSuccess ? { scale: 1.02 } : {}}
-        whileTap={!isLoading && !isSuccess ? { scale: 0.97 } : {}}
-        type="submit"
-        disabled={isLoading || isSuccess}
-        className={`w-full mt-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
-          isSuccess ? '' : 'btn-brand'
-        }`}
-        style={
-          isSuccess
-            ? { background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', boxShadow: '0 0 30px rgba(16,185,129,0.35)' }
-            : {}
-        }
-      >
-        <AnimatePresence mode="wait">
-          {isSuccess ? (
-            <motion.div
-              key="success"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 250, damping: 12 }}
-              className="flex items-center gap-2"
-            >
-              <Check className="w-5 h-5" /> Uploaded!
-            </motion.div>
-          ) : isLoading ? (
-            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Processing…
-            </motion.div>
-          ) : (
-            <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-              <Upload className="w-4 h-4" /> Upload File
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>
-    </motion.form>
+          {/* Name */}
+          <div>
+            <label className="block mb-1.5 text-xs font-bold text-gray-400">Author Name</label>
+            <input
+              type="text"
+              value={form.uploaderName}
+              onChange={(e) => setForm((prev) => ({ ...prev, uploaderName: e.target.value }))}
+              placeholder="Your full name"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#0a0a0a] border border-[#333333] text-white text-sm focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] outline-none transition-all"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block mb-1.5 text-xs font-bold text-gray-400">Description</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Provide a detailed description of the file contents..."
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl bg-[#0a0a0a] border border-[#333333] text-white text-sm focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] outline-none transition-all resize-none"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block mb-1.5 text-xs font-bold text-gray-400">Tags</label>
+            <div className="w-full rounded-xl bg-[#0a0a0a] border border-[#333333] p-2 min-h-[46px] flex flex-wrap gap-2 items-center focus-within:border-[#7c3aed] focus-within:ring-1 focus-within:ring-[#7c3aed] transition-all">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-md bg-[#7c3aed]/10 text-[#a78bfa] border border-[#7c3aed]/20"
+                >
+                  <Tag className="w-3 h-3" />
+                  {tag}
+                  <button type="button" onClick={() => removeTag(tag)} className="ml-0.5 hover:text-red-400">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleAddTag}
+                placeholder={tags.length === 0 ? "Add tags (press Enter)" : ""}
+                className="flex-1 min-w-[120px] bg-transparent outline-none text-sm px-2 py-1 text-white placeholder-gray-600"
+              />
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </form>
   );
 }

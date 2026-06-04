@@ -1,11 +1,11 @@
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import { FileX, Inbox, Library } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { FileX, Inbox, ArrowRight, Mic, Upload, PlayCircle, Settings, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useFilters } from '../hooks/useFilters';
 import { FileCard } from '../components/gallery/FileCard';
 import { FilterBar } from '../components/gallery/FilterBar';
-import { StatsStrip } from '../components/gallery/StatsStrip';
 import { SkeletonGrid } from '../components/gallery/SkeletonCard';
 
 const LAST_VISIT_KEY = 'notevault_last_visit';
@@ -16,11 +16,11 @@ const pageVariants: Variants = {
   exit:    { opacity: 0, y: -16, transition: { duration: 0.25 } },
 };
 
-const gridVariants: Variants = {
+const listVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.06 },
+    transition: { staggerChildren: 0.08 },
   },
 };
 
@@ -30,6 +30,10 @@ export function GalleryPage() {
     filters, updateFilter, clearFilters,
     filtered, subjects, semesters, fileTypes, activeFilterCount,
   } = useFilters(submissions);
+
+  const navigate = useNavigate();
+  const listRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const [lastVisit] = useState<Date | null>(() => {
     const stored = localStorage.getItem(LAST_VISIT_KEY);
@@ -48,80 +52,105 @@ export function GalleryPage() {
     return new Date(uploadedAt) > lastVisit;
   };
 
+  const scrollToList = () => {
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const groupedFiles = filtered.reduce((acc, file) => {
+    const date = new Date(file.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(file);
+    return acc;
+  }, {} as Record<string, typeof filtered>);
+
   return (
     <motion.div
       variants={pageVariants}
       initial="initial"
       animate="animate"
       exit="exit"
-      className="h-full flex flex-col"
-      style={{ background: 'transparent' }}
+      className="min-h-full flex flex-col"
     >
-      {/* ── Hero Header ── */}
-      <div
-        className="relative overflow-hidden px-6 pt-6 pb-6 md:pt-10 md:pb-8"
-        style={{ borderBottom: '1px solid var(--border-subtle)' }}
-      >
-        {/* subtle gradient behind hero */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.08) 0%, transparent 70%)',
-          }}
-        />
+      <div className="flex-1 max-w-[1200px] w-full mx-auto px-6 py-8 flex flex-col gap-8">
+        
+        {/* Top Search Bar */}
+        <div className="relative w-full max-w-2xl">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input 
+            ref={searchRef}
+            type="text" 
+            placeholder="Search for notes..."
+            value={filters.search}
+            onChange={(e) => updateFilter('search', e.target.value)}
+            className="w-full bg-[#1a1a1a] md:bg-[#111111] border border-[#333333] md:border-[#222222] rounded-full py-4 pl-14 pr-6 text-sm font-bold text-white focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] transition-all shadow-sm"
+          />
+        </div>
 
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="flex items-center gap-2 mb-3"
+        {/* Greeting */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white font-display">
+            Hi there, how may I help you?
+          </h1>
+        </div>
+
+        {/* Action Cards Grid (Responsive 3-col on desktop) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[240px]">
+          {/* Left tall card (takes 2 cols on desktop) */}
+          <motion.div 
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            className="relative rounded-3xl p-8 flex flex-col cursor-pointer overflow-hidden md:col-span-2 border border-white/10"
+            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)' }}
+            onClick={scrollToList}
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="w-12 h-12 rounded-full border border-white/20 bg-white/20 flex items-center justify-center mb-6 relative z-10">
+              <Mic className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="font-bold text-white text-2xl md:text-3xl leading-tight mb-2 relative z-10">Browse<br/>Notes</h3>
+            
+            <button className="mt-auto bg-white hover:bg-gray-100 text-[#7c3aed] text-sm font-bold py-3 px-6 rounded-full w-max transition-colors relative z-10 shadow-lg">
+              Browse now
+            </button>
+          </motion.div>
+
+          {/* Right stacked cards (takes 1 col on desktop) */}
+          <div className="flex flex-col gap-4 md:col-span-1">
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 rounded-3xl p-6 flex items-center justify-between cursor-pointer border border-white/10"
+              style={{ background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)' }}
+              onClick={() => navigate('/upload')}
             >
-              <Library className="w-5 h-5" style={{ color: '#a78bfa' }} />
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                Academic Vault
-              </span>
+              <div className="flex flex-col gap-3">
+                <div className="w-10 h-10 rounded-full border border-white/20 bg-white/20 flex items-center justify-center">
+                  <Upload className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-bold text-white text-base">Upload note</span>
+              </div>
+              <ArrowRight className="w-5 h-5 text-white/80" />
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, type: 'spring', stiffness: 300 }}
-              className="text-3xl md:text-5xl font-display font-bold leading-tight mb-2 gradient-text-brand"
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 rounded-3xl p-6 flex items-center justify-between cursor-pointer border border-white/10"
+              style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' }}
+              onClick={() => updateFilter('verifiedOnly', !filters.verifiedOnly)}
             >
-              All Files
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25 }}
-              className="text-base"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Browse and download premium study materials.
-            </motion.p>
+              <div className="flex flex-col gap-3">
+                <div className="w-10 h-10 rounded-full border border-white/20 bg-white/20 flex items-center justify-center">
+                  <PlayCircle className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-bold text-white text-base">Verified</span>
+              </div>
+              <ArrowRight className="w-5 h-5 text-white/80" />
+            </motion.div>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <StatsStrip
-              submissions={submissions}
-              filteredCount={filtered.length}
-              isLive={false}
-            />
-          </motion.div>
         </div>
-      </div>
 
-      {/* ── Content ── */}
-      <div className="flex-1 max-w-[1400px] w-full mx-auto px-6 py-5 md:py-7 flex flex-col gap-6">
-
-        {/* Filters */}
+        {/* Filter Pills */}
         <FilterBar
           filters={filters}
           subjects={subjects}
@@ -132,122 +161,58 @@ export function GalleryPage() {
           clearFilters={clearFilters}
         />
 
-        {/* Exam mode banner */}
-        <AnimatePresence>
-          {filters.examMode && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div
-                className="px-4 py-2.5 rounded-xl flex items-center gap-2.5 text-sm font-semibold"
-                style={{
-                  background: 'rgba(245,158,11,0.1)',
-                  border: '1px solid rgba(245,158,11,0.25)',
-                  color: '#fbbf24',
-                }}
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-                </span>
-                Exam Mode Active — Showing verified materials only
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Recent Notes List */}
+        <div className="flex flex-col gap-6 pb-12" ref={listRef}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">
+              Recent Notes
+            </h2>
+            {filtered.length > 0 && (
+              <button className="text-[#a78bfa] text-sm font-bold hover:text-white transition-colors" onClick={clearFilters}>
+                See all
+              </button>
+            )}
+          </div>
 
-        {/* Results count */}
-        {!isLoading && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-xs font-medium"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Showing <span style={{ color: 'var(--text-secondary)' }} className="font-bold">{filtered.length}</span> of{' '}
-            <span style={{ color: 'var(--text-secondary)' }} className="font-bold">{submissions.length}</span> files
-          </motion.p>
-        )}
-
-        {/* Grid / States */}
-        <div className="pb-12">
           {isLoading ? (
-            <SkeletonGrid count={9} />
+            <SkeletonGrid count={3} />
           ) : isError ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-24 rounded-2xl flex flex-col items-center gap-4"
-              style={{ background: 'var(--glass-bg)', border: '1px solid rgba(248,113,113,0.15)' }}
-            >
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(248,113,113,0.1)' }}>
-                <FileX className="w-7 h-7 text-rose-400" />
-              </div>
-              <div>
-                <p className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Failed to load files</p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Check your connection and try refreshing.</p>
-              </div>
-            </motion.div>
+            <div className="text-center py-10">
+              <FileX className="w-8 h-8 mx-auto text-red-500 mb-3" />
+              <p className="font-bold text-white">Failed to load files</p>
+            </div>
           ) : filtered.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-24 rounded-2xl flex flex-col items-center gap-5"
-              style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-subtle)' }}
-            >
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut' }}
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
-              >
-                <Inbox className="w-8 h-8" style={{ color: '#a78bfa' }} />
-              </motion.div>
-              <div>
-                <p className="font-bold text-lg mb-1.5 gradient-text-brand">
-                  {submissions.length === 0 ? 'Vault is empty' : 'No results found'}
-                </p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {submissions.length === 0
-                    ? 'Be the first to contribute study materials!'
-                    : 'Try adjusting your filters to find what you need.'}
-                </p>
-                {activeFilterCount > 0 && (
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={clearFilters}
-                    className="mt-4 text-sm font-bold px-4 py-2 rounded-xl btn-brand"
-                  >
-                    Clear Filters
-                  </motion.button>
-                )}
-              </div>
-            </motion.div>
+            <div className="text-center py-16 bg-[#111111] rounded-3xl border border-dashed border-[#333333]">
+              <Inbox className="w-10 h-10 mx-auto text-gray-600 mb-4" />
+              <p className="font-bold text-white mb-1">No notes found</p>
+              <p className="text-sm text-gray-500">Try adjusting your search or filters.</p>
+            </div>
           ) : (
-            <motion.div
-              variants={gridVariants}
-              initial="hidden"
-              animate="show"
-              className="grid gap-4"
-              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}
-            >
+            <motion.div variants={listVariants} initial="hidden" animate="show" className="flex flex-col gap-8">
               <AnimatePresence mode="popLayout">
-                {filtered.map((submission, i) => (
-                  <FileCard
-                    key={submission.id}
-                    submission={submission}
-                    isNew={isNew(submission.uploaded_at)}
-                    index={i}
-                  />
+                {Object.entries(groupedFiles).map(([date, files]) => (
+                  <div key={date} className="flex flex-col gap-4">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-gray-500 pl-1">
+                      {date}
+                    </h4>
+                    {/* Desktop grid for horizontal cards */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {files.map((submission, index) => (
+                        <FileCard 
+                          key={submission.id}
+                          submission={submission}
+                          isNew={isNew(submission.uploaded_at)}
+                          index={index}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </AnimatePresence>
             </motion.div>
           )}
         </div>
+
       </div>
     </motion.div>
   );

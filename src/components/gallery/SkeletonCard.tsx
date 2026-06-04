@@ -5,9 +5,9 @@ export function SkeletonCard() {
     <div
       className="relative rounded-2xl flex flex-col overflow-hidden"
       style={{
-        background: 'var(--glass-bg)',
-        border: '1px solid var(--card-border)',
-        borderTop: '2px solid rgba(124,58,237,0.3)',
+        background: 'var(--card-white)',
+        border: '1px solid var(--border)',
+        borderLeft: '3px solid var(--border)',
       }}
     >
       <div className="p-5 flex flex-col gap-4">
@@ -37,7 +37,7 @@ export function SkeletonCard() {
           </div>
         </div>
         <div className="flex gap-2 pt-1">
-          <div className="flex-1 h-10 rounded-xl shimmer" />
+          <div className="flex-1 h-10 rounded-full shimmer" />
           <div className="w-10 h-10 rounded-xl shimmer" />
         </div>
       </div>
@@ -50,7 +50,8 @@ export function SkeletonGrid({ count = 9 }: { count?: number }) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+      className="grid gap-4"
+      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}
     >
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonCard key={i} />

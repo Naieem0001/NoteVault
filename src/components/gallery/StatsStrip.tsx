@@ -41,13 +41,14 @@ export function StatsStrip({ submissions, filteredCount, isLive = false }: Stats
     <div className="flex items-center gap-2 flex-wrap">
       {/* Live indicator */}
       {isLive && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-2 glass rounded-full px-3 py-1.5 border border-white/[0.08] mr-2 shadow-glow-sm"
+          className="flex items-center gap-2 rounded-full px-3 py-1.5 mr-2"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <span className="live-dot" />
-          <span className="text-xs text-slate-300 font-bold uppercase tracking-wider">Live</span>
+          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--sub-text)' }}>Live</span>
         </motion.div>
       )}
 
@@ -58,10 +59,10 @@ export function StatsStrip({ submissions, filteredCount, isLive = false }: Stats
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: i * 0.1 + 0.2, type: 'spring' }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-            style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-subtle)' }}
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
           >
-            <item.icon className={`w-3.5 h-3.5`} style={{ color: item.accent ? '#a78bfa' : 'var(--text-muted)' }} />
-            <span className="text-sm font-bold" style={{ color: item.accent && item.value > 0 ? '#a78bfa' : 'var(--text-primary)' }}>
+            <item.icon className="w-3.5 h-3.5" style={{ color: item.accent ? 'var(--brand)' : 'var(--text-muted)' }} />
+            <span className="text-sm font-bold" style={{ color: item.accent && item.value > 0 ? 'var(--brand)' : 'var(--heading)' }}>
               <AnimatedNumber value={item.value} />
               {item.suffix && <span style={{ color: 'var(--text-muted)' }} className="font-medium">{item.suffix}</span>}
             </span>

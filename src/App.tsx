@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { useEffect } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { GalleryPage } from './pages/GalleryPage';
 import { UploadPage } from './pages/UploadPage';
@@ -27,13 +28,13 @@ function App() {
           </Routes>
         </AppLayout>
         <Toaster
-          theme="dark"
           position="bottom-right"
           toastOptions={{
             style: {
-              background: '#09090b',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: '#ededed',
+              background: '#111111',
+              border: '1px solid #222222',
+              color: '#FFFFFF',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
             },
           }}
         />
