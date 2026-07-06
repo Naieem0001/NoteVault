@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { App } from './App'
 import { initServiceWorker } from './lib/service-worker'
-import './index.css'
+// import './index.css'  // Using Tailwind CDN in index.html
 
 // Initialize PWA service worker with update handling
 initServiceWorker()
