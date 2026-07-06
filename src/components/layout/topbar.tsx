@@ -1,19 +1,40 @@
 import { useNotesStore } from '@/store/notes'
+import { useAuthStore } from '@/store/auth'
 import { Menu, Search, Moon, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { SearchResults } from '@/components/notes/search-results'
 
 interface TopBarProps {
   onToggleSidebar: () => void
+  onSelectNote: (id: string) => void
 }
 
-export function TopBar({ onToggleSidebar }: TopBarProps) {
-  const { searchQuery, setSearchQuery } = useNotesStore()
+export function TopBar({ onToggleSidebar, onSelectNote }: TopBarProps) {
+  const { searchQuery, setSearchQuery, searchNotes } = useNotesStore()
+  const { user } = useAuthStore()
   const [isDark, setIsDark] = useState(false)
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [showResults, setShowResults] = useState(false)
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains('dark')
     setIsDark(isDarkMode)
   }, [])
+
+  useEffect(() => {
+    const performSearch = async () => {
+      if (user && searchQuery.trim()) {
+        const results = await searchNotes(searchQuery, user.id)
+        setSearchResults(results)
+        setShowResults(true)
+      } else {
+        setShowResults(false)
+      }
+    }
+
+    const timer = setTimeout(performSearch, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery, user, searchNotes])
 
   const toggleDarkMode = () => {
     document.documentElement.classList.toggle('dark')
@@ -22,8 +43,9 @@ export function TopBar({ onToggleSidebar }: TopBarProps) {
   }
 
   return (
-    <header className="border-b border-neutral-200 bg-white px-4 py-3 dark:border-dark-border dark:bg-dark-surface">
-      <div className="flex items-center justify-between gap-4">
+    <>
+      <header className="border-b border-neutral-200 bg-white px-4 py-3 dark:border-dark-border dark:bg-dark-surface">
+        <div className="flex items-center justify-between gap-4">
         {/* Left: Menu and Logo */}
         <div className="flex items-center gap-4">
           <button
@@ -84,5 +106,19 @@ export function TopBar({ onToggleSidebar }: TopBarProps) {
         </div>
       </div>
     </header>
+
+      {/* Search Results Modal */}
+      {showResults && (
+        <SearchResults
+          query={searchQuery}
+          results={searchResults}
+          onSelectNote={onSelectNote}
+          onClose={() => {
+            setShowResults(false)
+            setSearchQuery('')
+          }}
+        />
+      )}
+    </>
   )
 }

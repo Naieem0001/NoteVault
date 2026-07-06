@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuthStore } from '@/store/auth'
 import { useNotesStore } from '@/store/notes'
 import { Sidebar } from '@/components/layout/sidebar'
-import { NoteEditor } from '@/components/notes/note-editor'
+import { RichEditor } from '@/components/notes/rich-editor'
 import { NotesList } from '@/components/notes/notes-list'
 import { TopBar } from '@/components/layout/topbar'
 import { Plus } from 'lucide-react'
@@ -25,7 +25,10 @@ export function Dashboard() {
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-dark-bg">
       {/* Top Bar */}
-      <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <TopBar 
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onSelectNote={setSelectedNoteId}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
@@ -61,7 +64,7 @@ export function Dashboard() {
           {/* Note Editor */}
           <div className="hidden flex-1 overflow-hidden md:flex">
             {selectedNote ? (
-              <NoteEditor note={selectedNote} />
+              <RichEditor note={selectedNote} />
             ) : (
               <div className="flex flex-1 items-center justify-center bg-neutral-50 dark:bg-dark-surface">
                 <div className="text-center">
