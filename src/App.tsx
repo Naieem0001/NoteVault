@@ -4,6 +4,7 @@ import { useNotesStore } from '@/store/notes'
 import { AuthPages } from '@/pages/auth'
 import { Dashboard } from '@/pages/dashboard'
 import { Loader } from '@/components/ui/loader'
+import { OfflineIndicator } from '@/components/ui/offline-indicator'
 
 export function App() {
   const { user, loading: authLoading, initializeAuth } = useAuthStore()
