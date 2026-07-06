@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/auth'
 import { Menu, Search, Moon, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { SearchResults } from '@/components/notes/search-results'
+import { toggleTheme } from '@/lib/theme'
 
 interface TopBarProps {
   onToggleSidebar: () => void
@@ -36,10 +37,9 @@ export function TopBar({ onToggleSidebar, onSelectNote }: TopBarProps) {
     return () => clearTimeout(timer)
   }, [searchQuery, user, searchNotes])
 
-  const toggleDarkMode = () => {
-    document.documentElement.classList.toggle('dark')
+  const handleThemeToggle = () => {
+    toggleTheme()
     setIsDark(!isDark)
-    localStorage.setItem('theme', isDark ? 'light' : 'dark')
   }
 
   return (
@@ -79,17 +79,17 @@ export function TopBar({ onToggleSidebar, onSelectNote }: TopBarProps) {
         </div>
 
         {/* Right: Theme Toggle */}
-        <button
-          onClick={toggleDarkMode}
-          className="rounded-lg p-2 hover:bg-neutral-100 dark:hover:bg-dark-card"
-          title="Toggle dark mode"
-        >
-          {isDark ? (
-            <Sun className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
-          ) : (
-            <Moon className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
-          )}
-        </button>
+          <button
+            onClick={handleThemeToggle}
+            className="rounded-lg p-2 hover:bg-neutral-100 dark:hover:bg-dark-card transition-colors"
+            aria-label="Toggle dark mode"
+          >
+            {isDark ? (
+              <Sun className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-neutral-600" />
+            )}
+          </button>
       </div>
 
       {/* Mobile Search */}

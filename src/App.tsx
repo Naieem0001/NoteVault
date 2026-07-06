@@ -5,6 +5,8 @@ import { AuthPages } from '@/pages/auth'
 import { Dashboard } from '@/pages/dashboard'
 import { Loader } from '@/components/ui/loader'
 import { OfflineIndicator } from '@/components/ui/offline-indicator'
+import { InstallPrompt } from '@/components/ui/install-prompt'
+import { initTheme } from '@/lib/theme'
 
 export function App() {
   const { user, loading: authLoading, initializeAuth } = useAuthStore()
@@ -13,6 +15,7 @@ export function App() {
 
   useEffect(() => {
     const init = async () => {
+      initTheme()
       await initializeAuth()
       setInitialized(true)
     }
@@ -30,5 +33,11 @@ export function App() {
     return <Loader />
   }
 
-  return user ? <Dashboard /> : <AuthPages />
+  return (
+    <>
+      <InstallPrompt />
+      <OfflineIndicator />
+      {user ? <Dashboard /> : <AuthPages />}
+    </>
+  )
 }

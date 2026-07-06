@@ -6,6 +6,7 @@ import { RichEditor } from '@/components/notes/rich-editor'
 import { NotesList } from '@/components/notes/notes-list'
 import { TopBar } from '@/components/layout/topbar'
 import { Plus } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export function Dashboard() {
   const { user } = useAuthStore()
@@ -64,9 +65,22 @@ export function Dashboard() {
           {/* Note Editor */}
           <div className="hidden flex-1 overflow-hidden md:flex">
             {selectedNote ? (
-              <RichEditor note={selectedNote} />
+              <motion.div
+                key={selectedNote.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1"
+              >
+                <RichEditor note={selectedNote} />
+              </motion.div>
             ) : (
-              <div className="flex flex-1 items-center justify-center bg-neutral-50 dark:bg-dark-surface">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-1 items-center justify-center bg-neutral-50 dark:bg-dark-surface"
+              >
                 <div className="text-center">
                   <p className="text-neutral-500 dark:text-neutral-400">
                     Select a note to start editing
@@ -79,7 +93,7 @@ export function Dashboard() {
                     Create your first note
                   </button>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
