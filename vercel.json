@@ -4,20 +4,14 @@
   "installCommand": "npm install",
   "framework": "vite",
   "outputDirectory": "dist",
-  "env": [
-    {
-      "key": "VITE_SUPABASE_URL",
-      "description": "Your Supabase project URL",
-      "value": "",
-      "type": "secret"
+  "env": {
+    "VITE_SUPABASE_URL": {
+      "description": "Your Supabase project URL"
     },
-    {
-      "key": "VITE_SUPABASE_ANON_KEY",
-      "description": "Your Supabase anonymous key",
-      "value": "",
-      "type": "secret"
+    "VITE_SUPABASE_ANON_KEY": {
+      "description": "Your Supabase anonymous key"
     }
-  ],
+  },
   "headers": [
     {
       "source": "/sw.js",
