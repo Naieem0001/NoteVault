@@ -1,13 +1,22 @@
 {
-  "name": "project-notevault",
-  "private": true,
-  "version": "0.0.0",
+  "name": "notevault",
+  "description": "Offline-first note-taking app with real-time sync",
+  "version": "1.0.0",
   "type": "module",
+  "author": "NoteVault Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Naieem0001/NoteVault.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "preview": "vite preview",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "type-check": "tsc --noEmit",
+    "analyze": "npm run build && npm run build -- --analyze"
   },
   "dependencies": {
     "@supabase/auth-helpers-react": "^0.15.0",
